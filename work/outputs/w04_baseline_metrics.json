@@ -1,0 +1,14 @@
+{
+  "action": "refresh_review",
+  "base_rate": 0.268,
+  "flagged": 8490,
+  "output": "work/outputs/baseline_action_score.csv",
+  "precision10": 0.7,
+  "precision100": 0.47,
+  "precision25": 0.64,
+  "precision50": 0.56,
+  "reason_code": "position_risk_with_demand",
+  "rows": 32596,
+  "rule": "visible * slipped * depth",
+  "slice": "March 2026 page-level"
+}
