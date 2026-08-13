@@ -1,0 +1,65 @@
+{
+  "base_rate_test": 0.342,
+  "baseline_w04_full_slice_prec50": 0.56,
+  "best_by_prec50": "decision_tree_d3",
+  "headline_metric": "precision@50 on test clients",
+  "leakage": "imp_trend_pct_mar / trend columns excluded; label halves never features",
+  "models": {
+    "baseline_rule": {
+      "avg_precision": 0.307,
+      "prec@10": 0.4,
+      "prec@100": 0.33,
+      "prec@25": 0.4,
+      "prec@50": 0.36,
+      "roc_auc": 0.433
+    },
+    "decision_tree_d3": {
+      "avg_precision": 0.345,
+      "prec@10": 0.6,
+      "prec@100": 0.41,
+      "prec@25": 0.44,
+      "prec@50": 0.48,
+      "roc_auc": 0.501
+    },
+    "logistic_regression": {
+      "avg_precision": 0.335,
+      "prec@10": 0.4,
+      "prec@100": 0.33,
+      "prec@25": 0.32,
+      "prec@50": 0.3,
+      "roc_auc": 0.492
+    },
+    "random_forest": {
+      "avg_precision": 0.347,
+      "prec@10": 0.3,
+      "prec@100": 0.32,
+      "prec@25": 0.24,
+      "prec@50": 0.22,
+      "roc_auc": 0.515
+    }
+  },
+  "output": "work/outputs/w05_model_metrics.json",
+  "repeated_grouped_mean_prec50": {
+    "auc_decision_tree_d3": 0.555,
+    "auc_logistic_regression": 0.51,
+    "auc_random_forest": 0.578,
+    "base_rate": 0.183,
+    "baseline_rule_prec50": 0.232,
+    "prec50_decision_tree_d3": 0.304,
+    "prec50_logistic_regression": 0.3,
+    "prec50_random_forest": 0.232,
+    "test_rows": 6949.4
+  },
+  "repeated_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "rows": 32596,
+  "slice": "March 2026 page-level (w03 contract)",
+  "split": "client_grouped_holdout_0.2_seed42",
+  "test_clients": 6,
+  "test_rows": 4495
+}
