@@ -26,6 +26,8 @@ whenever the task touches the data). Do not load every skill; keep context small
   `python -m jupyter nbconvert --to notebook --execute --inplace work/notebooks/<file>.ipynb`
 - minimal env additions are needed: `pip install -r requirements.txt` is NOT enough for
   execution — also `pip install nbformat nbclient ipykernel jupyter`.
+- New notebooks (weeks 3+) need a setup cell — a fresh kernel lacks `duckdb`:
+  `%pip install -q duckdb huggingface_hub pandas scikit-learn matplotlib`.
 - Sample pipeline (offline, no token): `python scripts/run_all.py` (~1 min).
 - Restore the one shipped dataset with: `git checkout -- data/raw/content_refresh_anonymized.csv`.
 - CI re-runs the pipeline and fails any committed dataset — keep `git status` clean of `*.csv`
@@ -35,5 +37,8 @@ whenever the task touches the data). Do not load every skill; keep context small
 - The Hugging Face READ token lives in repo-root `.env` as `HF_token`
   (notebooks also accept `HF_TOKEN`); it is gitignored. Load it with `load_dotenv`
   or `getpass` in the notebook — never hardcode it in a cell (repo is public).
-- Warehouse notebooks hit `hf://datasets/FlyRank/internship-warehouse`; a one‑month
+  `.env` loads relative to the notebook: from `work/notebooks/` use `load_dotenv("../../.env")`.
+- Warehouse notebooks connect through DuckDB:
+  `con.execute("CREATE OR REPLACE SECRET hf (TYPE huggingface, TOKEN '<token>')")`
+  before any read of `hf://datasets/FlyRank/internship-warehouse`. A one‑month
   partition scan takes ~1 min — don't repeat full scans in a loop.
