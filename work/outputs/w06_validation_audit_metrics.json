@@ -1,0 +1,87 @@
+{
+  "april_rows": 36262,
+  "before_after": [
+    {
+      "base_rate": 0.268,
+      "config": "before-1 full-month / random",
+      "lr_p50": 0.3,
+      "n_test": 6520,
+      "rf_auc": 0.738,
+      "rf_p50": 0.8,
+      "rule_auc": 0.54,
+      "rule_p50": 0.42,
+      "tree_auc": 0.671,
+      "tree_p50": 0.36
+    },
+    {
+      "base_rate": 0.342,
+      "config": "before-2 full-month / grouped",
+      "lr_p50": 0.32,
+      "n_test": 4495,
+      "rf_auc": 0.515,
+      "rf_p50": 0.22,
+      "rule_auc": 0.433,
+      "rule_p50": 0.36,
+      "tree_auc": 0.501,
+      "tree_p50": 0.48
+    },
+    {
+      "base_rate": 0.268,
+      "config": "after-1  time-aware / random",
+      "lr_p50": 0.88,
+      "n_test": 6520,
+      "rf_auc": 0.825,
+      "rf_p50": 0.86,
+      "rule_auc": 0.54,
+      "rule_p50": 0.42,
+      "tree_auc": 0.794,
+      "tree_p50": 0.66
+    },
+    {
+      "base_rate": 0.342,
+      "config": "after-2  time-aware / grouped",
+      "lr_p50": 0.6,
+      "n_test": 4495,
+      "rf_auc": 0.696,
+      "rf_p50": 0.46,
+      "rule_auc": 0.433,
+      "rule_p50": 0.36,
+      "tree_auc": 0.661,
+      "tree_p50": 0.34
+    }
+  ],
+  "leak_injection": {
+    "honest_tree_prec50": 0.34,
+    "leaky_auc": 1.0,
+    "leaky_tree_prec50": 1.0
+  },
+  "leakage_verdict": "no leakage in final (time-aware) feature set; full-month window overlap in w05 shipped features was the one window leak",
+  "march_rows": 32596,
+  "notebook": "w06_validation_audit",
+  "output": "work/outputs/w06_validation_audit_metrics.json",
+  "paper_findings": {
+    "A_freshness_multiplier": "label = impressions trend + health composite; refreshed set was chosen, not random",
+    "B_growth_classifier": "label shares family with features (descriptive); 71% accuracy vs ~62% majority class; row-random split across brands"
+  },
+  "slice": "March + April 2026 page-level (w03 contract population)",
+  "time_split": {
+    "time_full": {
+      "base_rate": 0.479,
+      "n_test": 36262,
+      "rf_auc": 0.646,
+      "rf_prec50": 0.24,
+      "rule_prec50": 0.24,
+      "tree_auc": 0.634,
+      "tree_prec50": 0.3
+    },
+    "time_grouped": {
+      "base_rate": 0.507,
+      "n_test": 5195,
+      "rf_auc": 0.702,
+      "rf_prec50": 0.7,
+      "rule_prec50": 0.26,
+      "tree_auc": 0.718,
+      "tree_prec50": 0.66
+    }
+  }
+}

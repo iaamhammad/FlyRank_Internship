@@ -47,7 +47,7 @@ Tick them off as you go; this table is the map of your work:
 | `notebooks/w04_signal_audit.ipynb` | ML-06 | ☐ |
 | `notebooks/w04_baseline_score.ipynb` | ML-07 | ✅ |
 | `notebooks/w05_model.ipynb` | ML-08 | ✅ |
-| `notebooks/w06_validation_audit.ipynb` | ML-09 | ☐ |
+| `notebooks/w06_validation_audit.ipynb` | ML-09 | ✅ |
 | `notebooks/w07_action_playbook.ipynb` | ML-10 | ☐ |
 | `notebooks/capstone.ipynb` | ML-11 (the paper mirrors it) | ☐ |
 
