@@ -50,6 +50,13 @@
       "tree_p50": 0.34
     }
   ],
+  "failure_examples": {
+    "deployment_fp_share_top50": 0.24,
+    "deployment_top50_prec": 0.76,
+    "grouped_holdout_fp_share_top50": 0.4,
+    "grouped_holdout_missed_declines_bottom_half": 586,
+    "grouped_holdout_top50_prec": 0.6
+  },
   "leak_injection": {
     "honest_tree_prec50": 0.34,
     "leaky_auc": 1.0,
@@ -61,7 +68,7 @@
   "output": "work/outputs/w06_validation_audit_metrics.json",
   "paper_findings": {
     "A_freshness_multiplier": "label = impressions trend + health composite; refreshed set was chosen, not random",
-    "B_growth_classifier": "label shares family with features (descriptive); 71% accuracy vs ~62% majority class; row-random split across brands"
+    "B_growth_classifier": "label shares family with features (descriptive); 71% accuracy vs ~62% majority class in the broader portfolio; split grouping not disclosed"
   },
   "slice": "March + April 2026 page-level (w03 contract population)",
   "time_split": {
