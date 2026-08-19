@@ -57,6 +57,10 @@
     "grouped_holdout_missed_declines_bottom_half": 583,
     "grouped_holdout_top50_prec": 0.6
   },
+  "forward_dated_clamp": {
+    "as_shipped_clamp_apr_lr_prec50": 0.76,
+    "honest_update_date_apr_lr_prec50": 0.64
+  },
   "leak_injection": {
     "honest_tree_prec50": 0.34,
     "leaky_auc": 1.0,
