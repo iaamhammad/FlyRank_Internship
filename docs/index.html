@@ -1,1101 +1,427 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Can Search Position Patterns Predict Which Pages Need Content Refreshes? | FlyRank ML Internship</title>
-  <meta name="description" content="A machine-learning study on content-refresh triage using 79 million rows of real production search data from the FlyRank ML Internship dataset. Research paper by Hammad." />
+  <title>Can Search Position Patterns Predict Which Pages Need Content Refreshes? — Hammad</title>
+  <meta name="description" content="A machine-learning study on content-refresh triage using 32,596 page-level search records from the FlyRank ML Internship dataset. Research by Hammad." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    /* ─── Design Tokens ─────────────────────────────── */
     :root {
-      --bg:          #0d1117;
-      --bg-card:     #161b22;
-      --bg-code:     #1c2128;
-      --border:      #30363d;
-      --border-soft: #21262d;
-      --text:        #e6edf3;
-      --text-muted:  #8b949e;
-      --text-dim:    #6e7681;
-      --amber:       #f0a32a;
-      --amber-soft:  #f0a32a22;
-      --teal:        #39d353;
-      --teal-soft:   #39d35322;
-      --blue:        #58a6ff;
-      --blue-soft:   #58a6ff18;
-      --red:         #f85149;
-      --accent:      #c9d1d9;
-      --max-w:       780px;
+      --bg:        #f9f7f4;
+      --bg-white:  #ffffff;
+      --text:      #1a1a1a;
+      --text-mid:  #444444;
+      --text-soft: #6b7280;
+      --accent:    #4a6fa5;
+      --accent-lt: #e8eef7;
+      --border:    #d1ccc6;
+      --border-lt: #e8e4df;
+      --code-bg:   #f0ede8;
+      --yellow-hl: rgba(255, 214, 0, 0.28);
+      --max-w:     700px;
     }
-
-    /* ─── Reset ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
-
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', system-ui, sans-serif;
-      font-size: 16px;
-      line-height: 1.75;
+      font-size: 16.5px;
+      line-height: 1.8;
       -webkit-font-smoothing: antialiased;
     }
-
-    /* ─── Progress bar (scroll indicator) ───────────── */
-    #progress-bar {
-      position: fixed;
-      top: 0; left: 0;
-      height: 3px;
-      width: 0%;
-      background: linear-gradient(90deg, var(--amber), var(--blue));
-      z-index: 1000;
-      transition: width 0.1s linear;
-    }
-
-    /* ─── Nav ────────────────────────────────────────── */
+    .wrap { max-width: var(--max-w); margin: 0 auto; padding: 0 1.5rem; }
     nav {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      padding: 0.75rem 1.5rem;
       position: sticky;
       top: 0;
-      z-index: 100;
-      background: rgba(13, 17, 23, 0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 1.5rem;
+      z-index: 50;
     }
-    nav .nav-inner {
+    .nav-inner {
       max-width: var(--max-w);
       margin: 0 auto;
       display: flex;
+      gap: 1.8rem;
       align-items: center;
-      justify-content: space-between;
-      height: 52px;
-      gap: 1rem;
-    }
-    .nav-brand {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--amber);
-      letter-spacing: 0.04em;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .nav-links {
-      display: flex;
-      gap: 1.4rem;
-      list-style: none;
       flex-wrap: wrap;
     }
-    .nav-links a {
-      color: var(--text-muted);
+    .nav-inner a {
+      font-size: 0.825rem;
+      color: var(--text-soft);
       text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+    }
+    .nav-inner a:hover { color: var(--accent); }
+    .nav-inner a.home { color: var(--accent); font-weight: 600; font-size: 0.8rem; }
+    header {
+      padding: 3.5rem 1.5rem 2rem;
+      max-width: var(--max-w);
+      margin: 0 auto;
+    }
+    .paper-label {
       font-size: 0.78rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text); }
-
-    /* ─── Layout ──────────────────────────────────────── */
-    .container {
-      max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    section {
-      padding: 4rem 0;
-      border-bottom: 1px solid var(--border-soft);
-    }
-    section:last-of-type { border-bottom: none; }
-
-    /* ─── Hero / Header ───────────────────────────────── */
-    #hero {
-      padding: 5rem 0 3.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .paper-type {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.72rem;
-      font-weight: 600;
+      text-transform: uppercase;
       letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--amber);
-      background: var(--amber-soft);
-      border: 1px solid var(--amber)44;
-      border-radius: 4px;
-      padding: 0.25rem 0.65rem;
-      margin-bottom: 1.5rem;
-    }
-    h1 {
-      font-family: 'Merriweather', Georgia, serif;
-      font-size: clamp(1.6rem, 4vw, 2.15rem);
-      font-weight: 700;
-      line-height: 1.3;
-      color: var(--text);
-      margin-bottom: 1.5rem;
-    }
-    .meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.2rem;
-      margin-bottom: 2.5rem;
-    }
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-    .meta-item .label { color: var(--text-dim); }
-    .meta-item .value { color: var(--text-muted); font-weight: 500; }
-
-    /* ─── Abstract box ────────────────────────────────── */
-    .abstract-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--amber);
-      border-radius: 8px;
-      padding: 1.5rem 1.75rem;
-      margin-top: 2rem;
-    }
-    .abstract-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 0.75rem;
-    }
-    .abstract-box p {
-      color: var(--accent);
-      font-size: 0.95rem;
-      line-height: 1.8;
-    }
-
-    /* ─── Section headings ────────────────────────────── */
-    h2 {
-      font-family: 'Inter', sans-serif;
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    h2 .section-num {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--amber);
-      background: var(--amber-soft);
-      border: 1px solid var(--amber)33;
-      border-radius: 4px;
-      padding: 0.15rem 0.5rem;
-      letter-spacing: 0.06em;
-      flex-shrink: 0;
-    }
-
-    h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--text);
-      margin: 1.75rem 0 0.75rem;
-    }
-
-    p { margin-bottom: 1rem; color: var(--accent); }
-    p:last-child { margin-bottom: 0; }
-
-    /* ─── Callout / stat cards ────────────────────────── */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin: 1.5rem 0;
-    }
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.1rem 1.2rem;
-      text-align: center;
-      transition: border-color 0.25s, transform 0.25s;
-    }
-    .stat-card:hover { border-color: var(--amber)66; transform: translateY(-2px); }
-    .stat-card .stat-value {
-      font-size: 1.65rem;
-      font-weight: 700;
-      color: var(--amber);
-      font-variant-numeric: tabular-nums;
-      display: block;
-    }
-    .stat-card .stat-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 0.2rem;
-      line-height: 1.4;
-    }
-
-    /* ─── Tables ──────────────────────────────────────── */
-    .table-wrap {
-      overflow-x: auto;
-      margin: 1.5rem 0;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-    thead th {
-      background: var(--bg-code);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.75rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 0.75rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-    tbody tr {
-      border-bottom: 1px solid var(--border-soft);
-      transition: background 0.15s;
-    }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--blue-soft); }
-    tbody td {
-      padding: 0.7rem 1rem;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-    }
-    .highlight-row td { background: var(--amber-soft); }
-    .highlight-row td:first-child { border-left: 3px solid var(--amber); }
-    .num-good { color: var(--teal); font-weight: 600; }
-    .num-neutral { color: var(--blue); }
-    .num-muted { color: var(--text-muted); }
-
-    /* ─── Code snippets ───────────────────────────────── */
-    code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82em;
-      background: var(--bg-code);
-      color: var(--blue);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 0.15em 0.4em;
-    }
-    pre {
-      background: var(--bg-code);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      overflow-x: auto;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      line-height: 1.65;
-      color: var(--text);
-      margin: 1.25rem 0;
-    }
-
-    /* ─── Alert / callout boxes ───────────────────────── */
-    .callout {
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      margin: 1.25rem 0;
-      font-size: 0.9rem;
-      border-left: 3px solid;
-    }
-    .callout-amber { background: var(--amber-soft); border-color: var(--amber); color: var(--accent); }
-    .callout-teal  { background: var(--teal-soft);  border-color: var(--teal);  color: var(--accent); }
-    .callout-blue  { background: var(--blue-soft);  border-color: var(--blue);  color: var(--accent); }
-    .callout-title { font-weight: 700; margin-bottom: 0.35rem; }
-    .callout-amber .callout-title { color: var(--amber); }
-    .callout-teal  .callout-title  { color: var(--teal); }
-    .callout-blue  .callout-title  { color: var(--blue); }
-
-    /* ─── Figures ─────────────────────────────────────── */
-    figure {
-      margin: 2rem 0;
-      text-align: center;
-    }
-    figure img {
-      max-width: 100%;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #fff;
-    }
-    figcaption {
-      margin-top: 0.7rem;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      font-style: italic;
-      line-height: 1.5;
-    }
-
-    /* ─── Lists ───────────────────────────────────────── */
-    ul, ol {
-      padding-left: 1.4rem;
+      color: var(--text-soft);
       margin-bottom: 1rem;
     }
-    li { color: var(--accent); margin-bottom: 0.35rem; }
-    li strong { color: var(--text); }
-
-    /* ─── Ranked rec cards ────────────────────────────── */
-    .rec-list { list-style: none; padding: 0; margin: 1.5rem 0; }
-    .rec-item {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.1rem 1.25rem;
-      margin-bottom: 0.75rem;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .rec-item:hover { border-color: var(--blue)55; transform: translateX(3px); }
-    .rec-rank {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--amber);
-      min-width: 1.8rem;
-      text-align: center;
-      padding-top: 0.05rem;
-    }
-    .rec-content { flex: 1; }
-    .rec-title { font-weight: 600; color: var(--text); margin-bottom: 0.3rem; }
-    .rec-desc { font-size: 0.875rem; color: var(--text-muted); }
-    .rec-badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      border-radius: 4px;
-      padding: 0.2rem 0.5rem;
-      margin-left: 0.5rem;
-      vertical-align: middle;
-    }
-    .badge-high   { background: #f85149 22; color: var(--red);  border: 1px solid var(--red)44; }
-    .badge-medium { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber)44; }
-    .badge-low    { background: var(--blue-soft);  color: var(--blue);  border: 1px solid var(--blue)44; }
-
-    /* ─── Notebook links ──────────────────────────────── */
-    .nb-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 0.75rem;
-      margin: 1.25rem 0;
-    }
-    .nb-card {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-      text-decoration: none;
-      color: var(--accent);
-      font-size: 0.85rem;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .nb-card:hover {
-      border-color: var(--blue)66;
-      background: var(--blue-soft);
+    h1 {
+      font-family: 'Lora', Georgia, serif;
+      font-size: 1.95rem;
+      font-weight: 600;
+      line-height: 1.35;
       color: var(--text);
+      margin-bottom: 1.1rem;
     }
-    .nb-icon { font-size: 1.1rem; }
-    .nb-name { font-weight: 500; }
-    .nb-desc { font-size: 0.75rem; color: var(--text-dim); }
-
-    /* ─── Footer ──────────────────────────────────────── */
+    .byline {
+      font-size: 0.9rem;
+      color: var(--text-soft);
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-lt);
+      padding-bottom: 1.25rem;
+    }
+    .byline strong { color: var(--text-mid); }
+    .abstract {
+      border-left: 3px solid var(--accent);
+      background: var(--accent-lt);
+      padding: 1.1rem 1.3rem;
+      margin-bottom: 2.5rem;
+      border-radius: 0 4px 4px 0;
+    }
+    .abstract-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .abstract p { font-size: 0.935rem; color: var(--text-mid); line-height: 1.75; }
+    section {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      border-top: 1px solid var(--border-lt);
+    }
+    h2 {
+      font-family: 'Lora', Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-mid);
+      margin: 1.5rem 0 0.5rem;
+    }
+    p { margin-bottom: 0.9rem; color: var(--text-mid); }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 0.9rem; color: var(--text-mid); }
+    li { margin-bottom: 0.3rem; }
+    mark {
+      background: var(--yellow-hl);
+      color: inherit;
+      padding: 0 0.15em;
+      border-radius: 2px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { color: var(--text); }
+    code {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 0.82em;
+      background: var(--code-bg);
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      color: #2d2d2d;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 1rem 1.15rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.83rem; line-height: 1.65; }
+    .table-wrap { overflow-x: auto; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 2px solid var(--border);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-lt); color: var(--text-mid); }
+    tr:nth-child(even) td { background: #f5f2ef; }
+    tr.best td { background: #edf2fb; font-weight: 500; }
+    tr.best td:first-child { border-left: 2px solid var(--accent); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    figure {
+      margin: 1.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--bg-white);
+    }
+    figure img { width: 100%; display: block; }
+    figcaption {
+      padding: 0.65rem 0.9rem;
+      font-size: 0.82rem;
+      font-style: italic;
+      color: var(--text-soft);
+      border-top: 1px solid var(--border-lt);
+    }
+    .note {
+      border-left: 3px solid var(--border);
+      padding: 0.75rem 1rem;
+      background: var(--bg-white);
+      border-radius: 0 4px 4px 0;
+      font-size: 0.875rem;
+      color: var(--text-mid);
+      margin: 1rem 0;
+    }
+    .note.blue { border-left-color: var(--accent); background: var(--accent-lt); }
+    .nb-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem;
+      margin: 0.75rem 0;
+    }
+    .nb-list li a {
+      display: block;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-white);
+      font-size: 0.82rem;
+      color: var(--text-mid);
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nb-list li a:hover { border-color: var(--accent); background: var(--accent-lt); color: var(--accent); }
+    .nb-list li a span { display: block; font-size: 0.72rem; color: var(--text-soft); }
     footer {
       border-top: 1px solid var(--border);
-      padding: 2.5rem 0;
-      text-align: center;
+      padding: 2rem 1.5rem;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      font-size: 0.82rem;
+      color: var(--text-soft);
     }
-    footer p { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 0.4rem; }
-    footer a { color: var(--blue); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-
-    /* ─── Inline highlight ────────────────────────────── */
-    mark {
-      background: var(--amber-soft);
-      color: var(--amber);
-      border-radius: 3px;
-      padding: 0.05em 0.3em;
-    }
-
-    /* ─── Responsive ──────────────────────────────────── */
+    footer p { margin-bottom: 0.35rem; color: var(--text-soft); }
     @media (max-width: 600px) {
-      .nav-links { display: none; }
-      h1 { font-size: 1.45rem; }
-      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      h1 { font-size: 1.5rem; }
+      .nav-inner { gap: 1rem; }
     }
   </style>
 </head>
-
 <body>
-<div id="progress-bar"></div>
 
-<!-- ── Navigation ─────────────────────────────────────── -->
-<nav role="navigation" aria-label="Page navigation">
+<nav role="navigation" aria-label="Page sections">
   <div class="nav-inner">
-    <a class="nav-brand" href="#hero">FlyRank ML Internship · ML-11</a>
-    <ul class="nav-links">
-      <li><a href="#data">Data</a></li>
-      <li><a href="#methodology">Methodology</a></li>
-      <li><a href="#results">Results</a></li>
-      <li><a href="#limitations">Limitations</a></li>
-      <li><a href="#recommendations">Recommendations</a></li>
-      <li><a href="#reproducibility">Reproducibility</a></li>
-    </ul>
+    <a class="home" href="#top">Hammad &middot; FlyRank ML</a>
+    <a href="#introduction">Introduction</a>
+    <a href="#data">Data</a>
+    <a href="#methodology">Methodology</a>
+    <a href="#results">Results</a>
+    <a href="#limitations">Limitations</a>
+    <a href="#recommendations">Recommendations</a>
+    <a href="#reproducibility">Code</a>
   </div>
 </nav>
 
-<!-- ── Hero / Title ───────────────────────────────────── -->
-<header id="hero">
-  <div class="container">
-    <div class="paper-type">
-      <span>🔬</span> Research Paper · ML-11 · Machine Learning Track
-    </div>
-
-    <h1>Can Search Position Patterns Predict Which Pages Need Content Refreshes?</h1>
-
-    <div class="meta-row">
-      <div class="meta-item">
-        <span class="label">Author</span>
-        <span class="value">Hammad</span>
-      </div>
-      <div class="meta-item">
-        <span class="label">Lane</span>
-        <span class="value">Lane 2 — Refresh / Content Opportunity Scoring</span>
-      </div>
-      <div class="meta-item">
-        <span class="label">Dataset</span>
-        <span class="value">FlyRank Internship Warehouse · March 2026</span>
-      </div>
-      <div class="meta-item">
-        <span class="label">Submitted</span>
-        <span class="value">September 2026</span>
-      </div>
-    </div>
-
-    <div class="abstract-box" role="region" aria-label="Abstract">
-      <div class="abstract-label">Abstract</div>
-      <p>
-        Content editors at SEO agencies routinely face a triage problem: with thousands of pages
-        across dozens of client accounts, which ones most urgently need a refresh, expansion, or
-        protection review? This study asks whether observable search-position and engagement
-        signals — available at the time of decision — can predict within-month impression
-        decline with enough precision to meaningfully triage a content queue.
-        Using 32,596 anonymized page-level records from the FlyRank internship warehouse
-        (March 2026), we compare a transparent rule baseline (<code>visible × slipped × depth</code>,
-        precision@50 = 0.36) against a depth-3 decision tree trained on six leakage-free features,
-        evaluated on a client-grouped holdout of six unseen clients.
-        The decision tree achieves a <mark>precision@50 of 0.48 on held-out clients</mark>
-        (vs. 0.36 for the rule and 0.34 base rate), with a repeated 5-seed mean of 0.304 —
-        indicating a real but modest and variable signal.
-        These results suggest that position depth is the strongest available triage signal,
-        and that a hybrid rule + model queue can direct human review effort more efficiently
-        than either method alone, while careful cross-client validation reveals the limits of
-        generalizing from a single month of data.
-        This work addresses a concrete FlyRank content problem: giving editorial teams a
-        principled, data-driven queue so they spend sprint hours on the pages most likely
-        to benefit from a refresh — not on pages that are already holding position.
-      </p>
-    </div>
+<header id="top">
+  <p class="paper-label">Research Paper &middot; FlyRank ML Internship &middot; Lane 2</p>
+  <h1>Can Search Position Patterns Predict Which Pages Need Content Refreshes?</h1>
+  <p class="byline">
+    <strong>Hammad</strong> &middot; FlyRank ML Internship &middot; Lane 2 &mdash; Refresh / Content Opportunity Scoring &middot; September 2026<br>
+    <a href="https://github.com/iaamhammad/FlyRank_Internship" target="_blank" rel="noopener">GitHub repository</a> &middot;
+    Data: <a href="https://huggingface.co/datasets/FlyRank/internship-warehouse" target="_blank" rel="noopener">FlyRank Internship Warehouse</a>
+  </p>
+  <div class="abstract">
+    <div class="abstract-label">Abstract</div>
+    <p>
+      Content editors at SEO agencies routinely face a triage problem: with thousands of pages across dozens of client accounts, which ones most urgently need a refresh, expansion, or protection review? This study asks whether observable search-position and engagement signals&mdash;available at the time of decision&mdash;can predict within-month impression decline with enough precision to meaningfully triage a content queue. Using 32,596 anonymized page-level records from the FlyRank internship warehouse (March 2026), I compare a transparent rule baseline (<code>visible &times; slipped &times; depth</code>, precision@50&nbsp;=&nbsp;0.36) against a depth-3 decision tree trained on six leakage-free features, evaluated on a client-grouped holdout of six unseen clients. The decision tree achieves a <mark>precision@50 of 0.48 on held-out clients</mark> (vs. 0.36 for the rule and 0.34 base rate), with a repeated 5-seed mean of 0.304&mdash;a real but modest and variable signal. These results address a concrete FlyRank content problem: giving editorial teams a principled queue so they spend sprint hours on the pages most likely to benefit from a refresh&mdash;not on pages already holding position&mdash;with position depth confirmed as the strongest available triage signal.
+    </p>
   </div>
 </header>
 
 <main>
 
-<!-- ── 1. Introduction ────────────────────────────────── -->
 <section id="introduction">
-  <div class="container">
-    <h2><span class="section-num">01</span> Introduction &amp; Problem Statement</h2>
-
-    <p>
-      An SEO agency managing 30 client accounts can have over 30,000 indexed pages in its
-      portfolio at any moment. A single account can carry 7,000 pages. No content team
-      can review them all in a sprint cycle. The real question is not <em>which pages
-      are declining</em> — that is answerable from analytics — but <em>which ones should
-      a human look at first, given limited time this week?</em>
-    </p>
-
-    <p>
-      This is a triage and ranking problem, not a prediction problem. The output is a
-      ranked queue with reason codes, designed to focus human editorial judgment. A wrong
-      recommendation has a real cost in both directions: a false positive wastes writer
-      hours on a page that was already fine; a false negative lets a genuinely declining
-      page lose traffic quietly until the next audit cycle catches it.
-    </p>
-
-    <p>
-      Prior to this work, the standard approach was either gut feel, recency (oldest publish
-      date first), or a hand-coded rule based on position and volume thresholds. The
-      reference pipeline in this repo (<code>scripts/01–05</code>) establishes that a
-      trained model can outperform a hand-written rule on a random holdout. The question
-      we pursue here is whether that advantage holds when we use a <em>client-grouped</em>
-      holdout — the deployment-realistic scenario where the model scores pages for
-      clients it has never seen in training.
-    </p>
-
-    <p>
-      This is <strong>FlyRank's content refresh triage problem</strong> in its practical form:
-      an SEO platform managing hundreds of client websites needs a repeatable, auditable
-      method to surface the highest-priority pages for editorial action each sprint — pages
-      where a timely refresh or expansion can recover lost search impressions before
-      traffic erosion compounds. Our findings show that a shallow, interpretable model
-      trained on position and engagement signals can outperform expert-designed rules on
-      new clients, while making the reasons for every recommendation transparent to editors.
-    </p>
-
-    <div class="stat-grid">
-      <div class="stat-card"><span class="stat-value">32,596</span><span class="stat-label">Page-level records, March 2026</span></div>
-      <div class="stat-card"><span class="stat-value">30</span><span class="stat-label">Anonymized client accounts</span></div>
-      <div class="stat-card"><span class="stat-value">26.8%</span><span class="stat-label">Training base rate (declining pages)</span></div>
-      <div class="stat-card"><span class="stat-value">34.2%</span><span class="stat-label">Held-out test base rate</span></div>
-    </div>
+  <h2>1. Introduction</h2>
+  <p>An SEO agency managing 30 client accounts can have over 30,000 indexed pages in its portfolio at any moment. A single account can carry 7,000 pages. No editorial team can review them all in a sprint cycle. The real question is not <em>which pages are declining</em>&mdash;that's answerable from analytics&mdash;but <em>which ones should someone look at first, given limited time this week?</em></p>
+  <p>This is a triage and ranking problem, not a prediction problem. The output is a ranked queue with reason codes, designed to focus human editorial judgment. A wrong recommendation has a real cost in both directions: a false positive wastes writer hours on a page that was already fine; a false negative lets a genuinely declining page lose traffic quietly until the next audit cycle catches it.</p>
+  <p>Prior to this work, the standard approach was either gut feel, recency (oldest publish date first), or a hand-coded rule based on position and volume thresholds. The reference pipeline in this repo (<code>scripts/01&ndash;05</code>) establishes that a trained model can outperform a hand-written rule on a random holdout. The question I pursue here is whether that advantage holds when using a <em>client-grouped holdout</em>&mdash;the deployment-realistic scenario where the model scores pages for clients it has never seen in training.</p>
+  <p>This is FlyRank's content refresh triage problem in its practical form: an SEO platform managing hundreds of client websites needs a repeatable, auditable method to surface the highest-priority pages for editorial action each sprint&mdash;pages where a timely refresh or expansion can recover lost search impressions before traffic erosion compounds. My findings show that a shallow, interpretable decision tree trained on position and engagement signals can outperform expert-designed rules on new clients, while making the reasons for every recommendation transparent to editors.</p>
+  <div class="table-wrap" style="margin-top:1.25rem;">
+    <table>
+      <thead><tr><th>Dataset stat</th><th class="num">Value</th></tr></thead>
+      <tbody>
+        <tr><td>Page-level records, March 2026</td><td class="num">32,596</td></tr>
+        <tr><td>Anonymized client accounts</td><td class="num">30</td></tr>
+        <tr><td>Training base rate (declining pages)</td><td class="num">26.8%</td></tr>
+        <tr><td>Held-out test base rate (6 clients)</td><td class="num">34.2%</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
-<!-- ── 2. Data ─────────────────────────────────────────── -->
 <section id="data">
-  <div class="container">
-    <h2><span class="section-num">02</span> Data</h2>
-
-    <h3>Source</h3>
-    <p>
-      All data comes from the <strong>FlyRank internship warehouse</strong>
-      (<code>hf://datasets/FlyRank/internship-warehouse</code>), a research dataset
-      derived from real production search analytics. We used two tables:
-    </p>
-    <ul>
-      <li><code>fact_content_daily_performance/month=2026-03/*.parquet</code> — daily GSC and GA4 metrics per page per day, March 2026.</li>
-      <li><code>dim_content.parquet</code> — page-level metadata including content creation and last-update dates.</li>
-    </ul>
-    <p>
-      The warehouse covers data described as equivalent to roughly 79 million row-level
-      observations across its full history. We work with one month's page-level aggregate
-      (March 2026), which yields 32,596 rows after filters.
-    </p>
-
-    <h3>Date window &amp; population</h3>
-    <p>
-      Snapshot date: <strong>2026-03-31</strong>. We aggregate all daily rows in March 2026
-      to one page-level record per (<code>client_hash_id</code>, <code>content_hash_id</code>).
-      The label is computed from the first vs. second half of the month — see Methodology.
-    </p>
-    <p>
-      We require <code>ga4_data_available IS TRUE AND gsc_data_available IS TRUE</code>
-      to ensure both data sources are present. Pages with fewer than 100 total GSC impressions
-      in March are excluded (too little signal to reliably define a decline trend within a
-      single month). Pages with a missing <code>avg_position</code> are dropped (171 rows, &lt;1%).
-    </p>
-
-    <h3>What was excluded and why</h3>
-    <ul>
-      <li><strong><code>trend_direction</code> and <code>trend_pct</code></strong> — these columns define the label; using them as features would be direct leakage.</li>
-      <li><strong>Raw page URLs and client domain names</strong> — the dataset uses anonymized hash IDs (<code>client_hash_id</code>, <code>content_hash_id</code>) throughout. No identifying information appears anywhere in this analysis.</li>
-      <li><strong>April 2026 data</strong> — used only in the validation audit (w06) to test temporal generalization. It is not part of the training or test split.</li>
-      <li><strong><code>content_updated_date</code> as a raw date field</strong> — forward-dated update timestamps can introduce temporal leakage (a page appearing "recently updated" at snapshot time may reflect post-hoc edits). We clip to <code>GREATEST(days_since_last_update, 0)</code> and verified the fix in w06.</li>
-    </ul>
-
-    <div class="callout callout-teal">
-      <div class="callout-title">Public-safety confirmation</div>
-      No client names, domain URLs, raw search queries, or any personally identifiable
-      information appears in this paper or in any committed artifact. All IDs are anonymized
-      hashes. This analysis is safe to publish.
-    </div>
-  </div>
+  <h2>2. Data</h2>
+  <h3>Source</h3>
+  <p>All data comes from the FlyRank internship warehouse (<code>hf://datasets/FlyRank/internship-warehouse</code>), a research dataset derived from real production search analytics. I used two tables:</p>
+  <ul>
+    <li><code>fact_content_daily_performance/month=2026-03/*.parquet</code> &mdash; daily GSC and GA4 metrics per page per day, March 2026.</li>
+    <li><code>dim_content.parquet</code> &mdash; page-level metadata including content creation and last-update dates.</li>
+  </ul>
+  <p>The warehouse covers data described as equivalent to roughly 79 million row-level observations across its full history. I work with one month's page-level aggregate (March 2026), yielding 32,596 rows after filters.</p>
+  <h3>Population and filters</h3>
+  <p>Snapshot date: 2026-03-31. I aggregate all daily rows in March 2026 to one page-level record per (<code>client_hash_id</code>, <code>content_hash_id</code>). I require <code>ga4_data_available IS TRUE AND gsc_data_available IS TRUE</code> to ensure both data sources are present. Pages with fewer than 100 total GSC impressions in March are excluded (too little signal to reliably define a decline within a single month). Pages with a missing <code>avg_position</code> are dropped (171 rows, &lt;1%).</p>
+  <h3>What was excluded and why</h3>
+  <ul>
+    <li><strong><code>trend_direction</code> and <code>trend_pct</code></strong> &mdash; these columns define the label; using them as features would be direct leakage.</li>
+    <li><strong>Raw page URLs and client domain names</strong> &mdash; the dataset uses anonymized hash IDs throughout. No identifying information appears anywhere in this analysis.</li>
+    <li><strong>April 2026 data</strong> &mdash; used only in the validation audit to test temporal generalization. Not part of the training or test split.</li>
+    <li><strong><code>content_updated_date</code> as a raw date field</strong> &mdash; forward-dated update timestamps can introduce temporal leakage. Clipped to <code>GREATEST(days_since_last_update, 0)</code> and verified in w06.</li>
+  </ul>
+  <div class="note blue">Public-safety confirmation: no client names, domain URLs, raw search queries, or personally identifiable information appear anywhere in this paper or its associated notebooks.</div>
 </section>
 
-<!-- ── 3. Methodology ─────────────────────────────────── -->
 <section id="methodology">
-  <div class="container">
-    <h2><span class="section-num">03</span> Methodology</h2>
-
-    <h3>Label definition</h3>
-    <p>
-      We define <code>is_declining_label = 1</code> when a page's GSC impressions in the
-      second half of March 2026 (days 16–31) are strictly less than in the first half
-      (days 1–15). This is a within-month proxy: it captures pages whose impression
-      trajectory was already negative within the observation window.
-    </p>
-    <div class="callout callout-amber">
-      <div class="callout-title">Label caveat</div>
-      This is a short-horizon proxy, not a confirmed long-run decline. A page with a
-      within-month dip may recover. We use this proxy because it is the only
-      within-dataset signal available; longer time windows require warehouse data beyond
-      a single month.
-    </div>
-
-    <h3>Features (the contract)</h3>
-    <p>Six features, all computable at snapshot time with no leakage:</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th>Description</th>
-            <th>Transformation</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><code>content_age_days</code></td><td>Days since page was created (at 2026-03-31)</td><td>Raw days</td></tr>
-          <tr><td><code>days_since_last_update</code></td><td>Days since last content update, clipped ≥ 0</td><td>Clipped (temporal leak fix)</td></tr>
-          <tr><td><code>avg_position_mar</code></td><td>Mean GSC position in March 2026</td><td>Raw; nulls dropped</td></tr>
-          <tr><td><code>log_gsc_impressions_mar</code></td><td>Log-transformed total impressions</td><td>log1p(impressions)</td></tr>
-          <tr><td><code>engagement_rate_mar</code></td><td>GA4 engaged sessions / sessions × 100</td><td>NaN filled with 0; <code>has_engagement</code> flag added</td></tr>
-          <tr><td><code>has_engagement</code></td><td>Binary: whether GA4 engagement data is available</td><td>Indicator</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Baseline rule</h3>
-    <p>
-      The rule baseline (<code>visible × slipped × depth</code>) flags a page when:
-      <code>gsc_impressions ≥ 500</code> (visible), position is ≥ 10 (deep), and
-      the page has any engagement (slipped from page-one). Reason code:
-      <code>position_risk_with_demand</code>. 8,490 pages flagged on the full March slice.
-    </p>
-
-    <h3>Model</h3>
-    <p>
-      Three models were compared (logistic regression, decision tree depth-3, random
-      forest). The decision tree with <code>max_depth=3</code>,
-      <code>class_weight='balanced'</code>, and <code>min_samples_leaf=50</code> was
-      selected as the keeper model based on precision@50 on held-out clients.
-      Random seed: 42.
-    </p>
-
-    <h3>Validation design</h3>
-    <p>
-      <strong>Client-grouped holdout:</strong> 30 clients are randomly split by client
-      (not by page) into 24 training clients and 6 test clients (80/20). No page from
-      a test client appears in training. This prevents the model from memorising
-      client-specific patterns and approximates deployment: the model will score pages
-      for new clients it has never seen.
-    </p>
-    <p>
-      <strong>Repeated splits:</strong> The split is repeated with 5 different random
-      seeds (0–4) and results averaged. This reduces dependence on a single lucky or
-      unlucky draw — the averaged metric gives a more stable estimate of true performance.
-    </p>
-
-    <h3>Leakage checks</h3>
-    <ul>
-      <li><code>trend_direction</code> and <code>trend_pct</code> excluded from all feature sets — confirmed in w03 and w06.</li>
-      <li>Synthetic leakage injection test: adding the label column directly produces AUC = 1.0, precision@50 = 1.0, confirming that leakage is detectable and not present in the honest feature set (which achieves AUC ≈ 0.50 on the grouped holdout).</li>
-      <li><code>days_since_last_update</code> forward-date clamp applied after discovering that raw update timestamps could reflect post-snapshot edits.</li>
-      <li>Random holdout (inflated test) vs. grouped holdout comparison reveals the difference: the random split produces artificially high metrics (RF AUC 0.738) because it leaks client context. We report only grouped-split numbers as the honest figures.</li>
-    </ul>
+  <h2>3. Methodology</h2>
+  <h3>Label definition</h3>
+  <p><code>is_declining_label = 1</code> if a page's total GSC impressions in the second half of March 2026 (days 16&ndash;31) are strictly less than in the first half (days 1&ndash;15). This is a pragmatic within-month proxy for "needs attention," not a confirmed long-run trend.</p>
+  <h3>Feature contract (6 leakage-free features)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>avg_position_mar</code></td><td>Average Google Search Console position across March.</td></tr>
+        <tr><td><code>log_gsc_impressions_mar</code></td><td>log(1 + impressions) &mdash; search demand volume.</td></tr>
+        <tr><td><code>engagement_rate_mar</code></td><td>GA4 engaged sessions &divide; total sessions &times; 100.</td></tr>
+        <tr><td><code>has_engagement</code></td><td>Binary flag: whether GA4 tracked any sessions.</td></tr>
+        <tr><td><code>content_age_days</code></td><td>Days elapsed since initial page publication.</td></tr>
+        <tr><td><code>days_since_last_update</code></td><td>Days since last content modification, clamped &ge; 0.</td></tr>
+      </tbody>
+    </table>
   </div>
+  <h3>Rule baseline</h3>
+  <p>The reference baseline flags a page if it has &ge;&nbsp;500 impressions (meaningful demand), average position &ge;&nbsp;10 (fallen off page one or deep), and recorded engagement. Reason code: <code>position_risk_with_demand</code>. This mirrors real-world agency triage rules and sets a fair comparison point.</p>
+  <h3>Validation design</h3>
+  <p>I used a <strong>client-grouped holdout split</strong> (80% train / 20% test: 24 training clients, 6 held-out test clients; 4,495 test rows). The grouping is critical: in production, the model is deployed on new clients. A standard random row split leaks client-level baseline distributions into training, which inflated Random Forest AUC from 0.50 to 0.74 in experiments&mdash;an artifact, not generalization. I ran the same split over 5 random seeds to check stability.</p>
+  <h3>Models evaluated</h3>
+  <p>Three candidates: Logistic Regression (L2), Decision Tree (<code>max_depth=3</code>, <code>class_weight='balanced'</code>, <code>min_samples_leaf=50</code>), and Random Forest (100 estimators). The decision tree was selected as the keeper because its decision rules are fully inspectable by agency stakeholders and it outperformed alternatives on precision@K on unseen clients.</p>
 </section>
 
-<!-- ── 4. Results ──────────────────────────────────────── -->
 <section id="results">
-  <div class="container">
-    <h2><span class="section-num">04</span> Results</h2>
-
-    <div class="callout callout-blue">
-      <div class="callout-title">Reading these numbers</div>
-      All figures below are on the <strong>same client-grouped holdout split</strong>
-      (6 held-out clients, 4,495 test rows, seed 42). Base rate on test clients: 0.342.
-      Precision@K = fraction of the top-K scored pages that are genuinely declining.
-    </div>
-
-    <h3>Model vs. baseline comparison — grouped holdout (seed 42)</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th>p@10</th>
-            <th>p@25</th>
-            <th>p@50</th>
-            <th>p@100</th>
-            <th>ROC-AUC</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Base rate (random guess)</td>
-            <td class="num-muted">0.342</td>
-            <td class="num-muted">0.342</td>
-            <td class="num-muted">0.342</td>
-            <td class="num-muted">0.342</td>
-            <td class="num-muted">—</td>
-          </tr>
-          <tr>
-            <td>Rule baseline (visible × slipped × depth)</td>
-            <td class="num-neutral">0.40</td>
-            <td class="num-neutral">0.40</td>
-            <td class="num-neutral">0.36</td>
-            <td class="num-neutral">0.33</td>
-            <td class="num-neutral">0.433</td>
-          </tr>
-          <tr>
-            <td>Logistic Regression</td>
-            <td class="num-neutral">0.40</td>
-            <td class="num-neutral">0.32</td>
-            <td class="num-neutral">0.30</td>
-            <td class="num-neutral">0.33</td>
-            <td class="num-neutral">0.492</td>
-          </tr>
-          <tr class="highlight-row">
-            <td><strong>Decision Tree (depth 3) ← keeper</strong></td>
-            <td class="num-good">0.60</td>
-            <td class="num-good">0.44</td>
-            <td class="num-good">0.48</td>
-            <td class="num-good">0.41</td>
-            <td class="num-neutral">0.501</td>
-          </tr>
-          <tr>
-            <td>Random Forest</td>
-            <td class="num-neutral">0.30</td>
-            <td class="num-neutral">0.24</td>
-            <td class="num-neutral">0.22</td>
-            <td class="num-neutral">0.30</td>
-            <td class="num-neutral">0.515</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Repeated 5-seed means (stability check)</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th>Mean p@50 (5 seeds)</th>
-            <th>Mean AUC (5 seeds)</th>
-            <th>Mean base rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Rule baseline</td>
-            <td class="num-neutral">0.232</td>
-            <td class="num-muted">—</td>
-            <td class="num-muted">0.183</td>
-          </tr>
-          <tr class="highlight-row">
-            <td><strong>Decision Tree (depth 3)</strong></td>
-            <td class="num-good">0.304</td>
-            <td class="num-good">0.555</td>
-            <td class="num-muted">0.183</td>
-          </tr>
-          <tr>
-            <td>Logistic Regression</td>
-            <td class="num-neutral">0.300</td>
-            <td class="num-neutral">0.510</td>
-            <td class="num-muted">0.183</td>
-          </tr>
-          <tr>
-            <td>Random Forest</td>
-            <td class="num-neutral">0.232</td>
-            <td class="num-neutral">0.578</td>
-            <td class="num-muted">0.183</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>
-      The single-seed result for the decision tree (p@50 = 0.48) is notably higher than the
-      5-seed mean (0.304), with a range of 0.10–0.46 across seeds. This variance reflects that
-      with only 30 clients, split composition matters: some draws leave easier or harder test
-      clients. We treat <mark>0.304 mean p@50</mark> as the honest headline — meaningfully
-      above the rule mean of 0.232 and the base-rate mean of 0.183, but with high uncertainty.
-    </p>
-
-    <h3>Chart: Precision@K on held-out test clients</h3>
-    <figure>
-      <img src="img/w07_precision_at_k.png" alt="Precision at K chart comparing rule baseline vs decision tree on held-out test clients" loading="lazy" />
-      <figcaption>
-        <strong>Figure 1.</strong> Precision@K on the client-grouped holdout (6 test clients, 4,495 rows, seed 42).
-        The decision tree outperforms the rule at every K from 10 to 100. Precision decays as K grows —
-        cap editorial reviews at the top 25–50 rows to maintain quality.
-      </figcaption>
-    </figure>
-
-    <h3>Chart: Page archetype breakdown</h3>
-    <figure>
-      <img src="img/w07_archetype_breakdown.png" alt="Bar chart showing page archetypes by count and decline rate" loading="lazy" />
-      <figcaption>
-        <strong>Figure 2.</strong> Five page archetypes across the full 32,596-page slice.
-        High-demand deep pages (avg. position 24.7, ≥3k impressions) carry the highest
-        decline rate (48.9%) and are flagged at 100% by the rule. Low-demand deep pages
-        (avg. position 22.0) account for the largest count (10,787) and a 34.8% decline rate.
-        Healthy visible pages (position ≤ 10, ≥1k impressions) carry only a 12.1% decline rate —
-        confirming that position depth, not volume alone, drives the decline signal.
-      </figcaption>
-    </figure>
-
-    <h3>Chart: Queue score distribution</h3>
-    <figure>
-      <img src="img/w07_queue_score_distribution.png" alt="Distribution of model probability scores across the full queue" loading="lazy" />
-      <figcaption>
-        <strong>Figure 3.</strong> Distribution of decision-tree probability scores across all 32,596 pages.
-        The bimodal shape reflects the tree's simple branching logic: most pages fall near 0.2 or 0.6,
-        with the high-scoring tail driving the top-K precision. Pages scored ≥ 0.5 by the model but
-        below the rule threshold contribute 9,329 additional <code>refresh_review</code> rows beyond
-        the rule-only queue.
-      </figcaption>
-    </figure>
-
-    <h3>Key finding: position is the signal; volume is only a gate</h3>
-    <p>
-      Signal audit (w04) measured decline rate by position bucket and impression tier independently.
-      Position depth shows a monotone relationship: pages at positions 1–3 decline at 13.8%; at
-      positions 21–50, the rate rises to <strong>42.9%</strong>. Volume (impression count) is
-      nearly flat across tiers (25–28% decline rate), confirming that impressions function as a
-      demand gate (filtering out zero-traffic pages) but carry no independent decline signal beyond
-      that threshold.
-    </p>
+  <h2>4. Results</h2>
+  <p>Primary metric is <strong>precision@K</strong>: the fraction of the top-K scored pages that are genuinely declining. This is the right metric for a triage queue&mdash;what matters is not how many declining pages you find in total, but whether the pages at the top of your list are worth the sprint time.</p>
+  <h3>Model comparison &mdash; client-grouped holdout (seed 42)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Model</th><th class="num">p@10</th><th class="num">p@25</th><th class="num">p@50</th><th class="num">p@100</th><th class="num">ROC-AUC</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Base rate (random)</td><td class="num">0.342</td><td class="num">0.342</td><td class="num">0.342</td><td class="num">0.342</td><td class="num">&mdash;</td></tr>
+        <tr><td>Rule baseline (visible &times; slipped &times; depth)</td><td class="num">0.40</td><td class="num">0.40</td><td class="num">0.36</td><td class="num">0.33</td><td class="num">0.433</td></tr>
+        <tr><td>Logistic Regression</td><td class="num">0.40</td><td class="num">0.32</td><td class="num">0.30</td><td class="num">0.33</td><td class="num">0.492</td></tr>
+        <tr class="best"><td><strong>Decision Tree (depth 3) &mdash; selected</strong></td><td class="num"><strong>0.60</strong></td><td class="num"><strong>0.44</strong></td><td class="num"><strong>0.48</strong></td><td class="num"><strong>0.41</strong></td><td class="num">0.501</td></tr>
+        <tr><td>Random Forest</td><td class="num">0.30</td><td class="num">0.24</td><td class="num">0.22</td><td class="num">0.30</td><td class="num">0.515</td></tr>
+      </tbody>
+    </table>
   </div>
+  <h3>Stability across 5 random client seeds</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th class="num">Mean p@50</th><th class="num">Mean AUC</th><th class="num">Mean base rate</th></tr></thead>
+      <tbody>
+        <tr><td>Rule baseline</td><td class="num">0.232</td><td class="num">&mdash;</td><td class="num">0.183</td></tr>
+        <tr class="best"><td><strong>Decision Tree (depth 3)</strong></td><td class="num"><strong>0.304</strong></td><td class="num">0.555</td><td class="num">0.183</td></tr>
+        <tr><td>Logistic Regression</td><td class="num">0.300</td><td class="num">0.510</td><td class="num">0.183</td></tr>
+        <tr><td>Random Forest</td><td class="num">0.232</td><td class="num">0.578</td><td class="num">0.183</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The single-seed result (p@50 = 0.48) is higher than the 5-seed mean (0.304), with a range of 0.10&ndash;0.46 across seeds. This variance reflects that with only 30 clients, split composition matters: some draws leave easier or harder test clients. I treat <mark>0.304 mean p@50</mark> as the honest headline&mdash;meaningfully above the rule mean (0.232) and the base-rate mean (0.183), but with high uncertainty.</p>
+  <h3>Chart: Precision@K on held-out test clients</h3>
+  <figure>
+    <img src="img/w07_precision_at_k.png" alt="Precision at K chart comparing rule baseline vs decision tree on held-out clients" loading="lazy" />
+    <figcaption>Figure 1. Precision@K on the client-grouped holdout (6 test clients, 4,495 rows, seed 42). The decision tree outperforms the rule at every K from 10 to 100. Precision decays as K grows&mdash;capping editorial reviews at the top 25&ndash;50 rows maintains quality.</figcaption>
+  </figure>
+  <h3>Chart: Page archetype breakdown</h3>
+  <figure>
+    <img src="img/w07_archetype_breakdown.png" alt="Bar chart showing page archetypes by count and decline rate" loading="lazy" />
+    <figcaption>Figure 2. Five page archetypes across the full 32,596-page slice. High-demand deep pages (avg. position 24.7, &ge;3k impressions) carry the highest decline rate (48.9%). Healthy visible pages (position &le; 10, &ge;1k impressions) carry only 12.1%&mdash;confirming that position depth, not volume alone, drives the decline signal.</figcaption>
+  </figure>
+  <h3>Chart: Queue score distribution</h3>
+  <figure>
+    <img src="img/w07_queue_score_distribution.png" alt="Distribution of model probability scores across the full queue" loading="lazy" />
+    <figcaption>Figure 3. Distribution of decision-tree probability scores across all 32,596 pages. The bimodal shape reflects the tree's simple branching logic. Pages scored &ge; 0.5 by the model but below the rule threshold contribute 9,329 additional <code>refresh_review</code> rows beyond the rule-only queue.</figcaption>
+  </figure>
+  <h3>Key finding: position is the signal; volume is only a gate</h3>
+  <p>Signal audit (w04) measured decline rate by position bucket and impression tier independently. Position depth shows a monotone relationship: pages at positions 1&ndash;3 decline at 13.8%; at positions 21&ndash;50, the rate rises to <strong>42.9%</strong>. Volume is nearly flat across tiers (25&ndash;28% decline rate), confirming that impressions function as a demand gate but carry no independent decline signal beyond that threshold.</p>
+  <p>One negative result worth noting: <code>days_since_last_update</code> showed median = 0 in March 2026 data due to a bulk CMS touch across multiple clients, providing near-zero discriminative power in this specific window. The feature stays in the contract because it's theoretically important and expected to activate in older data.</p>
 </section>
 
-<!-- ── 5. Limitations ─────────────────────────────────── -->
 <section id="limitations">
-  <div class="container">
-    <h2><span class="section-num">05</span> Limitations &amp; Honest Framing</h2>
-
-    <p>Every result in this paper comes with conditions that a reader should hold in mind:</p>
-
-    <ul>
-      <li>
-        <strong>Within-month label proxy.</strong> <code>is_declining_label</code> captures
-        whether impressions fell from the first half to the second half of a single month.
-        It is not a confirmed long-run trend. A page with a within-month dip may recover
-        the following week. The label is a pragmatic proxy for "needs attention," not
-        a ground-truth measure of SEO health.
-      </li>
-      <li>
-        <strong>Single month of data.</strong> We train and evaluate on March 2026 only.
-        The validation audit (w06) tested the model on April 2026 data and found performance
-        degrades — particularly with the time-aware split (tree p@50 drops from 0.48 to 0.34
-        on the grouped-time split). Seasonal patterns, algorithm updates, or structural
-        shifts could invalidate the feature relationships we observed.
-      </li>
-      <li>
-        <strong>High variance from small client count.</strong> 30 clients, with 6 held out,
-        means split composition has an outsized effect on results. The 5-seed mean p@50 of 0.304
-        carries a range of 0.10–0.46 — a 4× spread. Performance on any new client portfolio
-        could fall anywhere in this range.
-      </li>
-      <li>
-        <strong>No causal design.</strong> We observe an association between search position
-        and within-month impression change. We cannot claim that deeper position <em>causes</em>
-        decline, or that refreshing a flagged page will improve its ranking. No experiment
-        (A/B refresh test vs. untouched control) was run. This tool supports triage decisions;
-        it does not predict the outcome of a content refresh.
-      </li>
-      <li>
-        <strong>No generalisation claim beyond this portfolio.</strong> The dataset covers
-        one anonymized portfolio for one month. Results may not transfer to different industries,
-        page types, languages, or client sizes.
-      </li>
-      <li>
-        <strong>Content staleness signal was absent in this window.</strong> <code>days_since_last_update</code>
-        had a median of 0 in March 2026 — most pages were recently touched. Staleness is
-        included in the feature contract because it is theoretically important and expected to
-        activate in older data windows.
-      </li>
-      <li>
-        <strong>The model does not predict Google's algorithm.</strong> It predicts patterns
-        in this dataset that correlate with within-month impression change. It makes no claim
-        about ranking logic.
-      </li>
-    </ul>
-
-    <div class="callout callout-amber">
-      <div class="callout-title">Honest claim language throughout</div>
-      All findings in this paper use directional, decision-support language: "observed,"
-      "measured," "associated with," "suggests." Causal or predictive language has been
-      avoided wherever a proper causal design is absent.
-    </div>
-  </div>
+  <h2>5. Limitations &amp; Honest Framing</h2>
+  <p>Every result here comes with conditions. I'll state them plainly:</p>
+  <ul>
+    <li><strong>Within-month label proxy.</strong> <code>is_declining_label</code> captures whether impressions fell from the first half to the second half of a single month. It is not a confirmed long-run trend. A page with a within-month dip may recover the following week.</li>
+    <li><strong>Single month of data.</strong> Training and evaluation both use March 2026 only. The validation audit (w06) tested the model on April 2026 data and found performance degrades&mdash;particularly with the time-aware split (tree p@50 drops from 0.48 to 0.34).</li>
+    <li><strong>High variance from small client count.</strong> 30 clients, with 6 held out, means split composition has an outsized effect on results. The 5-seed mean p@50 of 0.304 carries a range of 0.10&ndash;0.46&mdash;a 4&times; spread.</li>
+    <li><strong>No causal design.</strong> I observe an association between search position and within-month impression change. No A/B refresh experiment was run. This tool supports triage decisions; it does not predict the outcome of a content refresh.</li>
+    <li><strong>No generalisation claim beyond this portfolio.</strong> The dataset covers one anonymized portfolio for one month. Results may not transfer to different industries, page types, languages, or client sizes.</li>
+    <li><strong>The model does not predict Google's algorithm.</strong> It predicts patterns in this dataset that correlate with within-month impression change. It makes no claim about ranking logic.</li>
+  </ul>
+  <div class="note">All findings in this paper use directional, decision-support language: "observed," "measured," "associated with," "suggests." Causal language has been avoided throughout.</div>
 </section>
 
-<!-- ── 6. Recommendations ─────────────────────────────── -->
 <section id="recommendations">
-  <div class="container">
-    <h2><span class="section-num">06</span> Ranked Recommendations</h2>
-
-    <p>
-      The action playbook maps page archetypes to editorial actions, in priority order.
-      A content strategist can pull the top-N rows from the ranked queue each sprint
-      cycle and schedule work by archetype. Confidence and limits are stated for each.
-    </p>
-
-    <ul class="rec-list">
-      <li class="rec-item">
-        <div class="rec-rank">1</div>
-        <div class="rec-content">
-          <div class="rec-title">
-            Review high-demand deep pages immediately
-            <span class="rec-badge badge-high">Urgent</span>
-          </div>
-          <div class="rec-desc">
-            Pages with ≥ 3,000 impressions and avg. position ≥ 10 — 3,245 pages with a 48.9% decline rate,
-            all rule-flagged. These carry the highest traffic risk. Action: <code>refresh_review</code>
-            with intent audit + SERP check. Human must verify query intent is still being served.
-          </div>
-        </div>
-      </li>
-      <li class="rec-item">
-        <div class="rec-rank">2</div>
-        <div class="rec-content">
-          <div class="rec-title">
-            Work the low-demand deep queue in batches
-            <span class="rec-badge badge-medium">Medium</span>
-          </div>
-          <div class="rec-desc">
-            10,787 pages at position ≥ 10 with &lt; 3,000 impressions; 34.8% decline rate, 95.6% rule-flagged.
-            Lower immediate traffic risk than #1, but far larger volume. Batch in groups of 25–50 at a time;
-            confirm the target query still has live search demand before investing refresh effort.
-          </div>
-        </div>
-      </li>
-      <li class="rec-item">
-        <div class="rec-rank">3</div>
-        <div class="rec-content">
-          <div class="rec-title">
-            Cap reviews at the top 25–50 rows per sprint
-            <span class="rec-badge badge-medium">Process</span>
-          </div>
-          <div class="rec-desc">
-            Precision drops from 0.48 at the top 50 to 0.41 at the top 100. Adding rows beyond 50 per sprint
-            means roughly equal true and false positives. Limit sprint scope to maintain quality; re-score
-            the queue each cycle rather than working through a stale ranked list.
-          </div>
-        </div>
-      </li>
-      <li class="rec-item">
-        <div class="rec-rank">4</div>
-        <div class="rec-content">
-          <div class="rec-title">
-            Include model-only flagged pages as secondary candidates
-            <span class="rec-badge badge-low">Secondary</span>
-          </div>
-          <div class="rec-desc">
-            9,329 pages score ≥ 0.5 on the decision tree but fall below the rule threshold.
-            These are not rule-flagged (position &lt; 10 or impressions &lt; 500) but the model
-            finds a pattern worth surfacing. Include them as a second tier after the rule queue
-            is worked through — or filter to the archetype <code>aging_page_one</code> (position &lt; 10,
-            age &gt; 180 days, low engagement), which carries a 22.4% decline rate.
-          </div>
-        </div>
-      </li>
-      <li class="rec-item">
-        <div class="rec-rank">5</div>
-        <div class="rec-content">
-          <div class="rec-title">
-            Retrain the model when conditions shift
-            <span class="rec-badge badge-low">Maintenance</span>
-          </div>
-          <div class="rec-desc">
-            Trigger retrain if: (a) base rate shifts &gt; 5pp from 26.8%; (b) model age exceeds 2 months;
-            or (c) p@50 on a recent validation slice drops below 0.30. The within-month label proxy is
-            cheap to recompute each month with a new warehouse partition scan.
-          </div>
-        </div>
-      </li>
-    </ul>
-
-    <h3>What should NOT be automated</h3>
-    <p>
-      The ranked queue is a decision-support tool, not an automation trigger. An editor must:
-    </p>
-    <ul>
-      <li>Confirm query intent is still live before committing refresh effort.</li>
-      <li>Check whether a position change reflects a SERP feature displacement (featured snippets, knowledge panels) vs. a genuine ranking drop — the model cannot distinguish these.</li>
-      <li>Make the final call on whether to refresh, expand, protect, prune, or monitor a given page.</li>
-    </ul>
-  </div>
+  <h2>6. What to Do With This</h2>
+  <p>The action playbook maps page archetypes to editorial actions, in priority order. A content strategist can pull the top-N rows from the ranked queue each sprint cycle and schedule work by archetype.</p>
+  <ol>
+    <li><strong>Review high-demand deep pages immediately.</strong> Pages with &ge;&nbsp;3,000 impressions and avg. position &ge;&nbsp;10&mdash;3,245 pages with a 48.9% decline rate, all rule-flagged. Action: <code>refresh_review</code> with intent audit + SERP check. A human must verify query intent is still being served.</li>
+    <li><strong>Work the low-demand deep queue in batches of 25&ndash;50.</strong> 10,787 pages at position &ge;&nbsp;10 with &lt;&nbsp;3,000 impressions; 34.8% decline rate. Confirm the target query still has live search demand before investing refresh effort.</li>
+    <li><strong>Cap reviews at the top 25&ndash;50 rows per sprint.</strong> Precision drops from 0.48 at the top 50 to 0.41 at the top 100. Re-score the queue each cycle rather than working through a stale ranked list.</li>
+    <li><strong>Include model-only flagged pages as secondary candidates.</strong> 9,329 pages score &ge;&nbsp;0.5 on the decision tree but fall below the rule threshold. Filter to the <code>aging_page_one</code> archetype (position &lt;&nbsp;10, age &gt;&nbsp;180 days, low engagement)&mdash;22.4% decline rate.</li>
+    <li><strong>Retrain when conditions shift.</strong> Trigger retrain if: (a) base rate shifts &gt;&nbsp;5pp from 26.8%; (b) model age exceeds 2 months; or (c) p@50 on a recent validation slice drops below 0.30.</li>
+  </ol>
+  <h3>What should not be automated</h3>
+  <p>The ranked queue is a decision-support tool, not an automation trigger. An editor must: confirm query intent is still live; check whether a position change reflects a SERP feature displacement vs. a genuine ranking drop; and make the final call on whether to refresh, expand, protect, prune, or monitor a given page.</p>
 </section>
 
-<!-- ── 7. Reproducibility ──────────────────────────────── -->
 <section id="reproducibility">
-  <div class="container">
-    <h2><span class="section-num">07</span> Reproducibility</h2>
-
-    <p>All analysis code is in the public GitHub repo. Each notebook below runs
-    end-to-end from a fresh kernel (requires a <code>HF_token</code> in <code>.env</code>
-    for warehouse reads).</p>
-
-    <h3>Notebooks</h3>
-    <div class="nb-grid">
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w01_research_question.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">📋</span>
-        <div>
-          <div class="nb-name">w01_research_question</div>
-          <div class="nb-desc">Lane selection · ML-02</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w02_ml_task_framing.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">🎯</span>
-        <div>
-          <div class="nb-name">w02_ml_task_framing</div>
-          <div class="nb-desc">Task framing · ML-03</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w03_data_contract.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">📄</span>
-        <div>
-          <div class="nb-name">w03_data_contract</div>
-          <div class="nb-desc">Feature contract · ML-04</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w04_baseline_score.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">📏</span>
-        <div>
-          <div class="nb-name">w04_baseline_score</div>
-          <div class="nb-desc">Rule baseline · ML-07</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w05_model.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">🤖</span>
-        <div>
-          <div class="nb-name">w05_model</div>
-          <div class="nb-desc">Model training · ML-08</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w06_validation_audit.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">🔍</span>
-        <div>
-          <div class="nb-name">w06_validation_audit</div>
-          <div class="nb-desc">Leakage + honest splits · ML-09</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w07_action_playbook.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">📣</span>
-        <div>
-          <div class="nb-name">w07_action_playbook</div>
-          <div class="nb-desc">Ranked queue · ML-10</div>
-        </div>
-      </a>
-      <a class="nb-card" href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/capstone.ipynb" target="_blank" rel="noopener">
-        <span class="nb-icon">📚</span>
-        <div>
-          <div class="nb-name">capstone</div>
-          <div class="nb-desc">Paper skeleton · ML-11</div>
-        </div>
-      </a>
-    </div>
-
-    <h3>How to re-run</h3>
-    <pre><code># 1. Clone the repo
+  <h2>7. Reproducibility</h2>
+  <p>All analysis code is in the public GitHub repo. Each notebook runs end-to-end from a fresh kernel (requires a <code>HF_token</code> in <code>.env</code> for warehouse reads).</p>
+  <h3>Notebooks</h3>
+  <ul class="nb-list">
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w01_research_question.ipynb" target="_blank" rel="noopener">w01_research_question<span>Lane selection &middot; ML-02</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w02_ml_task_framing.ipynb" target="_blank" rel="noopener">w02_ml_task_framing<span>Task framing &middot; ML-03</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w03_data_contract.ipynb" target="_blank" rel="noopener">w03_data_contract<span>Feature contract &middot; ML-04</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w04_baseline_score.ipynb" target="_blank" rel="noopener">w04_baseline_score<span>Rule baseline &middot; ML-07</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w05_model.ipynb" target="_blank" rel="noopener">w05_model<span>Model training &middot; ML-08</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w06_validation_audit.ipynb" target="_blank" rel="noopener">w06_validation_audit<span>Leakage + honest splits &middot; ML-09</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/w07_action_playbook.ipynb" target="_blank" rel="noopener">w07_action_playbook<span>Ranked queue &middot; ML-10</span></a></li>
+    <li><a href="https://github.com/iaamhammad/FlyRank_Internship/blob/main/work/notebooks/capstone.ipynb" target="_blank" rel="noopener">capstone<span>Paper skeleton &middot; ML-11</span></a></li>
+  </ul>
+  <h3>How to re-run</h3>
+  <pre><code># 1. Clone the repo
 git clone https://github.com/iaamhammad/FlyRank_Internship.git
 cd FlyRank_Internship
 
@@ -1110,98 +436,42 @@ echo "HF_token=hf_your_token_here" > .env
 python scripts/run_all.py   # ~1 min
 
 # 5. Run any work notebook
-jupyter nbconvert --to notebook --execute --inplace \
-  work/notebooks/w07_action_playbook.ipynb</code></pre>
-
-    <h3>Seeds and determinism</h3>
-    <p>
-      All experiments use <code>RANDOM_STATE = 42</code> as the primary seed.
-      Repeated-split experiments use seeds 0–4 in sequence. Results may vary slightly
-      across scikit-learn versions due to internal algorithm changes; the metric receipts
-      in <code>work/outputs/</code> record the values produced by the committed notebook runs.
-    </p>
-
-    <h3>Metric receipts</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>File</th><th>Contains</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>work/outputs/w04_baseline_metrics.json</code></td><td>Rule baseline precision@K, row counts</td></tr>
-          <tr><td><code>work/outputs/w05_model_metrics.json</code></td><td>All model comparisons, repeated-split means</td></tr>
-          <tr><td><code>work/outputs/w06_validation_audit_metrics.json</code></td><td>Before/after splits, leakage injection, time-aware results</td></tr>
-          <tr><td><code>work/outputs/w07_playbook_metrics.json</code></td><td>Queue stats, archetype breakdown, retrain triggers</td></tr>
-        </tbody>
-      </table>
-    </div>
+jupyter nbconvert --to notebook --execute --inplace work/notebooks/w07_action_playbook.ipynb</code></pre>
+  <h3>Seeds and determinism</h3>
+  <p>All experiments use <code>RANDOM_STATE = 42</code> as the primary seed. Repeated-split experiments use seeds 0&ndash;4 in sequence. Results may vary slightly across scikit-learn versions; the metric receipts in <code>work/outputs/</code> record the values produced by the committed notebook runs.</p>
+  <h3>Metric receipts</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Contains</th></tr></thead>
+      <tbody>
+        <tr><td><code>work/outputs/w04_baseline_metrics.json</code></td><td>Rule baseline precision@K, row counts</td></tr>
+        <tr><td><code>work/outputs/w05_model_metrics.json</code></td><td>All model comparisons, repeated-split means</td></tr>
+        <tr><td><code>work/outputs/w06_validation_audit_metrics.json</code></td><td>Before/after splits, leakage injection, time-aware results</td></tr>
+        <tr><td><code>work/outputs/w07_playbook_metrics.json</code></td><td>Queue stats, archetype breakdown, retrain triggers</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
-<!-- ── 8. Acknowledgments ─────────────────────────────── -->
 <section id="acknowledgments">
-  <div class="container">
-    <h2><span class="section-num">08</span> Acknowledgments &amp; Data Credit</h2>
-
-    <p>
-      This research was conducted as part of the <strong>FlyRank ML Internship Program</strong>.
-      All search analytics data used in this study is sourced from the
-      <strong>FlyRank ML Internship dataset</strong>, a research dataset derived from real
-      production search performance data. Dataset access was provided by
-      <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank</a>.
-    </p>
-
-    <p>
-      Crediting your data source is standard research practice. The dataset is hosted at
-      <code>hf://datasets/FlyRank/internship-warehouse</code> on the Hugging Face Hub.
-      Internship program documentation, dataset description, and usage terms are available
-      through the <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank</a>
-      internship portal.
-    </p>
-
-    <div class="callout callout-teal">
-      <div class="callout-title">Built on the FlyRank ML Internship dataset</div>
-      Data source: <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>
-      · Warehouse: <code>hf://datasets/FlyRank/internship-warehouse</code>
-      · Partition used: <code>fact_content_daily_performance/month=2026-03</code>
-    </div>
-  </div>
+  <h2>8. Acknowledgments &amp; Data Credit</h2>
+  <p>This research was conducted as part of the <strong>FlyRank ML Internship Program</strong>. All search analytics data is sourced from the FlyRank ML Internship dataset, a research dataset derived from real production search performance data. Dataset access was provided by <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank</a>.</p>
+  <p>The dataset is hosted at <code>hf://datasets/FlyRank/internship-warehouse</code> on the Hugging Face Hub.</p>
+  <div class="note">&ldquo;Built on the FlyRank ML Internship dataset&rdquo; &middot; Data source: <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a> &middot; Warehouse: <code>hf://datasets/FlyRank/internship-warehouse</code> &middot; Partition: <code>fact_content_daily_performance/month=2026-03</code></div>
 </section>
 
 </main>
 
-<!-- ── Footer ─────────────────────────────────────────── -->
 <footer>
-  <div class="container">
-    <p>
-      <strong>Can Search Position Patterns Predict Which Pages Need Content Refreshes?</strong>
-    </p>
-    <p>
-      FlyRank ML Internship · Lane 2 — Refresh / Content Opportunity Scoring · ML-11 · September 2026
-    </p>
-    <p>
-      <a href="https://github.com/iaamhammad/FlyRank_Internship" target="_blank" rel="noopener">GitHub Repository</a>
-      ·
-      <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank</a>
-      ·
-      Data: <a href="https://huggingface.co/datasets/FlyRank/internship-warehouse" target="_blank" rel="noopener">FlyRank Internship Warehouse</a>
-    </p>
-    <p style="margin-top:1rem; font-size:0.75rem; color: var(--text-dim);">
-      All data is anonymized. No client names, domain URLs, or personally identifiable
-      information appear anywhere in this paper or its associated artifacts.
-    </p>
-  </div>
+  <p><strong>Can Search Position Patterns Predict Which Pages Need Content Refreshes?</strong></p>
+  <p>FlyRank ML Internship &middot; Lane 2 &mdash; Refresh / Content Opportunity Scoring &middot; ML-11 &middot; September 2026</p>
+  <p style="margin-top:0.5rem;">
+    <a href="https://github.com/iaamhammad/FlyRank_Internship" target="_blank" rel="noopener">GitHub</a> &middot;
+    <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank</a> &middot;
+    <a href="https://huggingface.co/datasets/FlyRank/internship-warehouse" target="_blank" rel="noopener">Dataset</a>
+  </p>
+  <p style="margin-top:0.75rem; font-size:0.75rem;">All data is anonymized. No client names, domain URLs, or personally identifiable information appear anywhere in this paper or its associated artifacts.</p>
 </footer>
-
-<!-- ── Scroll progress bar script ────────────────────── -->
-<script>
-  const bar = document.getElementById('progress-bar');
-  window.addEventListener('scroll', () => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    bar.style.width = (scrollTop / docHeight * 100) + '%';
-  }, { passive: true });
-</script>
 
 </body>
 </html>
