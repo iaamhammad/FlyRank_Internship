@@ -507,6 +507,9 @@
         and that a hybrid rule + model queue can direct human review effort more efficiently
         than either method alone, while careful cross-client validation reveals the limits of
         generalizing from a single month of data.
+        This work addresses a concrete FlyRank content problem: giving editorial teams a
+        principled, data-driven queue so they spend sprint hours on the pages most likely
+        to benefit from a refresh — not on pages that are already holding position.
       </p>
     </div>
   </div>
@@ -543,6 +546,16 @@
       we pursue here is whether that advantage holds when we use a <em>client-grouped</em>
       holdout — the deployment-realistic scenario where the model scores pages for
       clients it has never seen in training.
+    </p>
+
+    <p>
+      This is <strong>FlyRank's content refresh triage problem</strong> in its practical form:
+      an SEO platform managing hundreds of client websites needs a repeatable, auditable
+      method to surface the highest-priority pages for editorial action each sprint — pages
+      where a timely refresh or expansion can recover lost search impressions before
+      traffic erosion compounds. Our findings show that a shallow, interpretable model
+      trained on position and engagement signals can outperform expert-designed rules on
+      new clients, while making the reasons for every recommendation transparent to editors.
     </p>
 
     <div class="stat-grid">
