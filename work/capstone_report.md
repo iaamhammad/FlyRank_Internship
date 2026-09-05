@@ -1,6 +1,6 @@
 # Capstone Report — Lane 2: Refresh / Content Opportunity Scoring
 
-- **Author:** Hammad
+- **Author:** Hammad Muhammad
 - **Lane:** Lane 2 — Refresh / Content Opportunity Scoring
 - **Repo:** https://github.com/iaamhammad/FlyRank_Internship
 - **Paper Deployed at:** https://iaamhammad.github.io/FlyRank_Internship/
