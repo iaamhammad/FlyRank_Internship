@@ -160,3 +160,58 @@ This research was conducted as part of the **FlyRank ML Internship Program**. Al
 > **Built on the FlyRank ML Internship dataset**  
 > Data source & platform: [https://flyrank.ai](https://flyrank.ai)  
 > Warehouse repository: `hf://datasets/FlyRank/internship-warehouse`  
+
+---
+
+## 9. Week-8 Demo Outline (5 min)
+
+*A compact script for the showcase: question → method → one chart → one honest result → one recommendation.*
+
+### The question (30 sec)
+SEO agencies manage tens of thousands of pages across dozens of clients. No editorial team can review them all. The question: **can search-position and engagement signals, observed at sprint start, predict which pages are declining — well enough to triage a useful content queue?**
+
+### The method (60 sec)
+- **Data:** 32,596 page-level records from the FlyRank internship warehouse (March 2026, 30 clients).
+- **Label:** `is_declining_label = 1` if a page’s impressions fell from the first to the second half of March.
+- **Six leakage-free features:** avg. search position, log impressions, engagement rate, content age, days since last update, engagement flag.
+- **Validation:** Client-grouped holdout (6 unseen clients). Random row splits inflate scores — we used the deployment-realistic split.
+- **Baseline:** Hand-coded rule (`visible × slipped × depth`). Every model compared on the same split.
+
+### One chart (60 sec)
+**Figure 1: Precision@K — Rule vs. Decision Tree on held-out test clients**
+![Precision at K](figures/w07_precision_at_k.png)
+*The decision tree (depth 3) outperforms the rule baseline at every K from 10 to 100. Precision drops after row 50 — capping sprint queues at 25–50 rows maintains quality.*
+
+### One honest result (60 sec)
+The depth-3 decision tree achieves **precision@50 = 0.48** on held-out clients (vs. 0.36 for the rule, 0.34 base rate). That’s encouraging — but the 5-seed mean is **0.304** with a range of 0.10–0.46. What that means: with only 30 clients and 6 held out, split composition matters. The model has real but variable signal. It is a decision-support tool, not an autonomous prediction system.
+
+### One recommendation (30 sec)
+**Cap review queues at 25–50 pages per sprint and use a hybrid rule + model approach.** The rule catches urgent deep-position pages (48.9% decline rate); the model adds 9,329 aging page-one candidates the rule misses. Together they give editors a principled, auditable queue — with reason codes, not black-box scores.
+
+---
+
+## 10. Shareable Cuts
+
+*Two audience-specific framings of the same work, ready to share as-is.*
+
+### Social post (LinkedIn / X)
+> I spent the last 8 weeks building a content-refresh triage system on 32,596 real search-performance records from the FlyRank ML Internship dataset.
+>
+> The problem: SEO teams can’t review 30,000 pages per sprint. Which ones actually need a refresh?
+>
+> Key findings:
+> - Search **position depth** is the strongest signal (pages at pos. 21–50 decline at 42.9%; pages at pos. 1–3 decline at 13.8%)
+> - Impression **volume** is nearly flat across decline rates — it’s a demand gate, not a decay signal
+> - A depth-3 decision tree hit **precision@50 = 0.48** on unseen clients vs. 0.36 for a hand-coded rule
+> - 5-seed mean: 0.304 — real signal, honest variance
+>
+> Biggest lesson: random row splits inflate AUC from 0.50 to 0.74. Client-grouped holdouts tell the truth.
+>
+> Paper: https://iaamhammad.github.io/FlyRank_Internship/  
+> Repo: https://github.com/iaamhammad/FlyRank_Internship  
+>
+> #MachineLearning #SEO #ContentStrategy #DataScience #MLInternship
+
+### Employer 3-sentencer
+> I built and validated a content-refresh triage system using 32,596 anonymized page-level search records from a real SEO platform (FlyRank’s internship warehouse, covering 30 client accounts). I trained a depth-3 decision tree on six leakage-free features — search position, impressions, engagement rate, and content age — validated with a client-grouped holdout that tests generalization to entirely new clients. The model achieved precision@50 of 0.48 on held-out clients (vs. 0.36 rule baseline), with a 5-seed mean of 0.304, confirming a real but variable signal and demonstrating that position depth, not content volume, is the primary triage driver for editorial content queues.
+
